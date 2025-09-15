@@ -1,0 +1,31 @@
+import type {NextApiRequest, NextApiResponse} from 'next';
+
+type Note = {
+    id: number;
+    text: string;
+};
+
+let notes: Note[] = [];
+
+export default function handler(req: NextApiRequest, res: NextApiResponse) {
+    if (req.method === 'GET') {
+        res.status(200).json(notes);
+    }
+
+    if (req.method === 'POST') {
+        const {text} = req.body;
+        const newNote: Note = {
+            id: Date.now(),
+            text,
+        };
+        notes.push(newNote);
+        return res.status(201).json(newNote);
+    }
+
+    if (req.method === 'DELETE') {
+        const { id } = req.query;
+        notes = notes.filter((note)) => note.id !== Number(id));
+        return res.status(200).json({ message: 'Note deleted' });
+    }
+
+return res.status(405).json({ message: 'Method not allowed' });
