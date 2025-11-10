@@ -9,6 +9,8 @@ type Note = {
 export default function Home() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [text, setText] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null); // Track note being edited here
+  const [editText, setEditText] = useState("");
 
   // Fetch notes
   useEffect(() => {
@@ -38,6 +40,28 @@ export default function Home() {
     setNotes(notes.filter((note) => note.id !== id));
   };
 
+  // Start editing
+  const startEdit = (note: Note) => {
+    setEditingId(note.id);
+    setEditText(note.text);
+  };
+
+  // Save edited note
+  const saveEdit = async (id: number) => {
+    if (!editText.trim()) return;
+
+    const res = await fetch(`/api/notes?id=${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: editText }),
+    });
+    const updatedNote = await res.json();
+
+    setNotes(notes.map((note) => (note.id === id ? updatedNote : note)));
+    setEditingId(null);
+    setEditText("");
+  };
+
   return (
     <main className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-lg p-6">
@@ -46,10 +70,7 @@ export default function Home() {
         </h1>
 
         {/* Add Note Form */}
-        <form
-          onSubmit={addNote}
-          className="flex items-center gap-2 mb-6"
-        >
+        <form onSubmit={addNote} className="flex items-center gap-2 mb-6">
           <input
             type="text"
             value={text}
@@ -72,13 +93,46 @@ export default function Home() {
               key={note.id}
               className="flex justify-between items-center bg-gray-50 p-3 rounded-lg shadow-sm"
             >
-              <span className="text-gray-800">{note.text}</span>
-              <button
-                onClick={() => deleteNote(note.id)}
-                className="text-red-500 hover:text-red-700 font-medium"
-              >
-                Delete
-              </button>
+              {editingId === note.id ? (
+                <div className="flex w-full gap-2">
+                  <input
+                    type="text"
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    className="flex-1 p-2 border rounded-lg"
+                  />
+                  <button
+                    onClick={() => saveEdit(note.id)}
+                    className="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditingId(null)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <span className="text-gray-800">{note.text}</span>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => startEdit(note)}
+                      className="text-blue-500 hover:text-blue-700 font-medium"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => deleteNote(note.id)}
+                      className="text-red-500 hover:text-red-700 font-medium"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
             </li>
           ))}
         </ul>
